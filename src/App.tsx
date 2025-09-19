@@ -181,6 +181,15 @@ function App() {
     const files = event.target.files;
     if (!files) return;
 
+    // Validate files before processing
+    for (let i = 0; i < files.length; i++) {
+      const validation = knowledgeService.validateFile(files[i]);
+      if (!validation.valid) {
+        showNotification(validation.error || 'Invalid file', 'error');
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       const processedFiles = [];
@@ -197,7 +206,7 @@ function App() {
 
       showNotification(`${processedFiles.length} file(s) uploaded successfully!`, 'success');
     } catch (error) {
-      showNotification('Error uploading files', 'error');
+      showNotification(error instanceof Error ? error.message : 'Error uploading files', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -473,7 +482,7 @@ function App() {
                           <div>
                             <div className="text-sm font-medium text-gray-900">{file.name}</div>
                             <div className="text-xs text-gray-500">
-                              {(file.size / 1024).toFixed(1)} KB • {new Date(file.uploadedAt).toLocaleDateString()}
+                              {(file.size / 1024).toFixed(1)} KB • {knowledgeService.getFileSummary(file)} • {new Date(file.uploadedAt).toLocaleDateString()}
                             </div>
                           </div>
                         </div>
@@ -494,11 +503,16 @@ function App() {
                   <input
                     type="file"
                     multiple
-                    accept=".txt,.pdf,.doc,.docx,.json,.csv,.md"
+                    accept=".txt,.pdf,.doc,.docx,.json,.csv,.md,text/plain,application/pdf,application/json,text/csv,text/markdown"
                     onChange={handleFileUpload}
                     className="hidden"
+                    disabled={isLoading}
                   />
                 </label>
+                
+                <div className="text-xs text-gray-500 mt-2">
+                  Supported formats: TXT, PDF, DOC, DOCX, JSON, CSV, MD (max 10MB each)
+                </div>
               </div>
 
               {/* Capabilities */}
