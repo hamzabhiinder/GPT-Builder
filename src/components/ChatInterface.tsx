@@ -29,6 +29,19 @@ export default function ChatInterface({ gpt, onBack }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Add initial welcome message
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        role: 'assistant',
+        content: `Hello! I'm ${gpt.name}. ${gpt.description} How can I help you today?`,
+        timestamp: new Date()
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [gpt, messages.length]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 

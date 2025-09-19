@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, X, Upload, Plus, Check, Info, Settings, Key, Download, Upload as UploadIcon } from 'lucide-react';
 import { GPTConfig, SavedGPT } from './types/gpt';
 import { gptService } from './services/gptService';
+import { knowledgeService } from './services/knowledgeService';
 import ShareModal from './components/ShareModal';
 import GPTStore from './components/GPTStore';
 import ApiKeyModal from './components/ApiKeyModal';
@@ -125,6 +126,31 @@ function App() {
     setCurrentView('chat');
   };
 
+  const handleCreateNewGPT = () => {
+    // Reset to default config for new GPT
+    setGptConfig({
+      name: 'My Custom GPT',
+      description: 'A helpful AI assistant',
+      instructions: 'You are a helpful AI assistant. Be friendly, informative, and assist users with their questions.',
+      conversation_starters: [
+        'Hello! How can I help you today?',
+        'What would you like to know?'
+      ],
+      knowledge_files: [],
+      capabilities: {
+        web_search: true,
+        canvas: false,
+        dalle_image_generation: false,
+        code_interpreter: false,
+      },
+      custom_actions: [],
+      visibility: 'private'
+    });
+    setCurrentGPT(null);
+    setCurrentView('builder');
+    setActiveTab('configure');
+  };
+
   const handleExportGPT = () => {
     if (currentGPT) {
       gptService.exportGPT(currentGPT);
@@ -149,6 +175,39 @@ function App() {
   const handleApiKeySave = (apiKey: string) => {
     gptService.setApiKey(apiKey);
     showNotification('API key saved successfully!', 'success');
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    setIsLoading(true);
+    try {
+      const processedFiles = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const knowledgeFile = await knowledgeService.processFile(file);
+        processedFiles.push(knowledgeFile);
+      }
+
+      setGptConfig(prev => ({
+        ...prev,
+        knowledge_files: [...prev.knowledge_files, ...processedFiles]
+      }));
+
+      showNotification(`${processedFiles.length} file(s) uploaded successfully!`, 'success');
+    } catch (error) {
+      showNotification('Error uploading files', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveKnowledgeFile = (fileId: string) => {
+    setGptConfig(prev => ({
+      ...prev,
+      knowledge_files: prev.knowledge_files.filter(file => file.id !== fileId)
+    }));
   };
 
   // Chat Interface
@@ -177,7 +236,7 @@ function App() {
               <h1 className="font-semibold text-gray-900">GPT Store</h1>
             </div>
             <button 
-              onClick={() => setCurrentView('builder')}
+              onClick={handleCreateNewGPT}
               className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800"
             >
               Create New GPT
@@ -399,10 +458,47 @@ function App() {
                 <p className="text-sm text-gray-600">
                   If you upload files under Knowledge, conversations with your GPT may include file contents. Files can be downloaded when Code Interpreter is enabled
                 </p>
-                <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                
+                {/* Uploaded Files */}
+                {gptConfig.knowledge_files.length > 0 && (
+                  <div className="space-y-2">
+                    {gptConfig.knowledge_files.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                            <span className="text-blue-600 text-xs font-medium">
+                              {file.name.split('.').pop()?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{file.name}</div>
+                            <div className="text-xs text-gray-500">
+                              {(file.size / 1024).toFixed(1)} KB • {new Date(file.uploadedAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveKnowledgeFile(file.id)}
+                          className="p-1 hover:bg-gray-200 rounded"
+                        >
+                          <X className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
                   <Upload className="w-4 h-4" />
                   <span>Upload files</span>
-                </button>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".txt,.pdf,.doc,.docx,.json,.csv,.md"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {/* Capabilities */}

@@ -1,4 +1,6 @@
 import { SavedGPT } from '../types/gpt';
+import { knowledgeService } from './knowledgeService';
+import { capabilitiesService } from './capabilitiesService';
 
 class OpenAIService {
   private apiKey: string | null = null;
@@ -19,7 +21,8 @@ class OpenAIService {
 
   async sendMessage(message: string, gpt: SavedGPT): Promise<string> {
     if (!this.apiKey) {
-      throw new Error('API key not configured');
+      // Return a demo response if no API key is configured
+      return await this.getDemoResponse(message, gpt);
     }
 
     try {
@@ -60,6 +63,62 @@ class OpenAIService {
       console.error('OpenAI API Error:', error);
       throw error;
     }
+  }
+
+  private async getDemoResponse(message: string, gpt: SavedGPT): Promise<string> {
+    let response = '';
+    
+    // Check if we should use capabilities
+    if (gpt.capabilities.web_search && capabilitiesService.shouldUseWebSearch(message)) {
+      const searchResult = await capabilitiesService.performWebSearch(message);
+      response += searchResult + '\n\n';
+    }
+    
+    if (gpt.capabilities.dalle_image_generation && capabilitiesService.shouldGenerateImage(message)) {
+      const imageResult = await capabilitiesService.generateImage(message);
+      response += imageResult + '\n\n';
+    }
+    
+    if (gpt.capabilities.code_interpreter && capabilitiesService.shouldExecuteCode(message)) {
+      const codeResult = await capabilitiesService.executeCode(message);
+      response += codeResult + '\n\n';
+    }
+    
+    if (gpt.capabilities.canvas && capabilitiesService.shouldUseCanvas(message)) {
+      const canvasResult = await capabilitiesService.createCanvas(message);
+      response += canvasResult + '\n\n';
+    }
+
+    // Search knowledge base
+    if (gpt.knowledge_files && gpt.knowledge_files.length > 0) {
+      const knowledgeResults = knowledgeService.searchKnowledge(message, gpt.knowledge_files);
+      if (knowledgeResults.length > 0) {
+        response += '📚 **From Knowledge Base:**\n\n' + knowledgeResults.join('\n\n') + '\n\n';
+      }
+    }
+
+    // Demo responses when no API key is configured
+    const responses = [
+      `Hello! I'm ${gpt.name}. ${gpt.description} How can I help you today?`,
+      `As ${gpt.name}, I'm here to assist you. What would you like to know?`,
+      `Thanks for your message! I'm ${gpt.name} and I'm ready to help you with your questions.`,
+      `Great question! As ${gpt.name}, I can help you with that. Let me provide you with some information.`,
+      `I understand you're asking about "${message}". As ${gpt.name}, I'm designed to help with exactly these kinds of questions.`
+    ];
+    
+    // Simple response based on message content
+    if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
+      response += `Hello! I'm ${gpt.name}. ${gpt.description} How can I assist you today?`;
+    } else if (message.toLowerCase().includes('help')) {
+      response += `I'm ${gpt.name} and I'm here to help! ${gpt.description} What specific assistance do you need?`;
+    } else if (message.toLowerCase().includes('what') || message.toLowerCase().includes('how')) {
+      response += `That's a great question! As ${gpt.name}, I can help you with that. ${gpt.description} Let me provide you with some guidance on this topic.`;
+    } else {
+      // Return a random response
+      response += responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    return response.trim();
   }
 
   private createSystemMessage(gpt: SavedGPT): string {

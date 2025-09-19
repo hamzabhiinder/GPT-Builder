@@ -4,7 +4,7 @@ export interface GPTConfig {
   description: string;
   instructions: string;
   conversation_starters: string[];
-  knowledge_files: File[];
+  knowledge_files: KnowledgeFile[];
   capabilities: {
     web_search: boolean;
     canvas: boolean;
@@ -22,6 +22,15 @@ export interface GPTConfig {
   created_at?: string;
   updated_at?: string;
   author?: string;
+}
+
+export interface KnowledgeFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  content: string;
+  uploadedAt: string;
 }
 
 export interface SavedGPT extends GPTConfig {

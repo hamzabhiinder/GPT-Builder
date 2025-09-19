@@ -183,7 +183,9 @@ export default function GPTStore({ savedGPTs, onSelectGPT, onChatWithGPT }: GPTS
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onChatWithGPT && onChatWithGPT(gpt as any);
+                            if (onChatWithGPT) {
+                              onChatWithGPT(gpt as any);
+                            }
                           }}
                           className="px-3 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
                         >
@@ -243,7 +245,15 @@ export default function GPTStore({ savedGPTs, onSelectGPT, onChatWithGPT }: GPTS
                           >
                             Edit
                           </button>
-                          <button className="px-3 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onChatWithGPT) {
+                                onChatWithGPT(gpt);
+                              }
+                            }}
+                            className="px-3 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
+                          >
                             Chat
                           </button>
                         </div>
@@ -296,7 +306,15 @@ export default function GPTStore({ savedGPTs, onSelectGPT, onChatWithGPT }: GPTS
                         >
                           Edit
                         </button>
-                        <button className="px-3 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onChatWithGPT) {
+                              onChatWithGPT(gpt as any);
+                            }
+                          }}
+                          className="px-3 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg"
+                        >
                           Chat
                         </button>
                       </div>
